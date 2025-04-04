@@ -59,6 +59,7 @@ class Main(QMainWindow):
     def __init__(self, screen):
         super().__init__()
 
+        self.selected_file_extension = None
         self.selected_file = None
 
         # Screen sizes
@@ -81,7 +82,20 @@ class Main(QMainWindow):
         self.select_file_button = QPushButton("Select File")
         self.select_file_button.setMinimumSize(window_width // 5, window_height // 5)
         self.select_file_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
+        # self.select_file_button.setStyleSheet("""
+        #                                         QPushButton {
+        #                                             background-color: #3498db;
+        #                                             color: white;
+        #                                             border-radius: 20px;
+        #                                             padding: 5px;
+        #                                         }
+        #                                         QPushButton:hover {
+        #                                             background-color: #2980b9;
+        #                                         }
+        #                                         QPushButton:pressed {
+        #                                             background-color: #1c5980;
+        #                                         }
+        #                                     """)
         self.download_converted_button = QPushButton("Convert and Download")
         self.download_converted_button.setMinimumSize(window_width // 5, window_height // 5)
         self.download_converted_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -90,9 +104,23 @@ class Main(QMainWindow):
         self.clear_file_button = QPushButton("Reset")
         self.clear_file_button.setMinimumSize(window_height // 5, window_height // 5)
         self.clear_file_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
+        # self.clear_file_button.setStyleSheet("""
+        #                                         QPushButton {
+        #                                             background-color: red;
+        #                                             color: white;
+        #                                             border-radius: 20px;
+        #                                             padding: 5px;
+        #                                         }
+        #                                         QPushButton:hover {
+        #                                             background-color: darkred;
+        #                                         }
+        #                                         QPushButton:pressed {
+        #                                             background-color: #1c5980;
+        #                                         }
+        #                                     """)
+        
+        self.videos = ["Select Format", "mp4", "avi", "mov", "mkv", "webm"]
         self.dropdown = QComboBox(self)
-        self.dropdown.addItems(["mp4", "avi", "mov", "mkv", "webm"])
         self.dropdown.setMinimumSize(window_height // 5, window_height // 5)
         self.dropdown.hide()
 
@@ -127,14 +155,18 @@ class Main(QMainWindow):
         file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
 
         if file_dialog.exec():
-            self.selected_file = file_dialog.selectedFiles()[0]
-            print("Selected File:", self.selected_file)
+            self.selected_file = os.path.splitext(file_dialog.selectedFiles()[0])[0]
+            self.selected_file_extension = os.path.splitext(file_dialog.selectedFiles()[0])[1]
+            print(f"Selected File: {self.selected_file}{self.selected_file_extension}")
 
             self.layout2.insertWidget(0, self.clear_file_button)
             self.clear_file_button.show()
             self.select_file_button.setEnabled(False)
 
             self.layout1.insertWidget(1, self.dropdown)
+            if self.selected_file_extension[1:] in self.videos:
+                self.dropdown.addItems(self.videos)
+                self.dropdown.removeItem(self.dropdown.findText(self.selected_file_extension[1:]))
             self.dropdown.show()
 
             self.layout1.insertWidget(2, self.download_converted_button)
@@ -149,6 +181,7 @@ class Main(QMainWindow):
         self.select_file_button.setEnabled(True)
 
         self.layout1.removeWidget(self.dropdown)
+        self.dropdown.clear()
         self.dropdown.hide()
         self.dropdown.setParent(None)
 
@@ -157,12 +190,11 @@ class Main(QMainWindow):
         self.download_converted_button.setParent(None)
 
 
-    def convert_video(self, input_file, output_format):
+    def convert_video(self, output_format):
         try:
-            filename_without_extension = os.path.splitext(input_file)[0]
-            output_file = f"{filename_without_extension}_converted.{output_format}"
+            output_file = f"{self.selected_file}_converted.{output_format}"
 
-            video = VideoFileClip(input_file)
+            video = VideoFileClip(self.selected_file)
             video.write_videofile(output_file)
 
 
@@ -177,7 +209,7 @@ class Main(QMainWindow):
 
         output_format = self.dropdown.currentText()
         if output_format in ["mp4", "avi", "mov", "mkv", "webm"]:
-            output_file = self.convert_video(self.selected_file, output_format)
+            output_file = self.convert_video(output_format)
 
         return output_file
 
